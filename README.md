@@ -1,5 +1,4 @@
 # Image Recognition
-some
 
 Intended to use Tesseract with Golang 
 
@@ -37,13 +36,12 @@ command to run if program contains helper info
 ## Authors
 
 * Roger Velazquez 
-  * ex. [@DomPizzie](https://twitter.com/dompizzie)
+  * ex. [@Roger](https://twitter.com/dompizzie)
 
 
 ## Contributors
 
 * none
-  * ex. [@DomPizzie](https://twitter.com/dompizzie)
 
 ## License
 

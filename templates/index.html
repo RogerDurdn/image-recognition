@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>SelectZone example</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css"
+          integrity="sha512-uf06llspW44/LZpHzHT6qBOIVODjWtv4MxCricRxkzvopAlSWnTf6hpZTFxuuZcuNE9CBQhqE0Seu1CoRk84nQ=="
+          crossorigin="anonymous" referrerpolicy="no-referrer"/>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+</head>
+
+<style>
+
+    body {
+        background-color: #C3E0E5;
+
+    }
+
+    #screenshot {
+        position: absolute;
+        z-index: 1;
+
+    }
+
+    #draw {
+        position: absolute;
+        z-index: 2;
+        pointer-events: none;
+    }
+
+    #draw #boxes {
+        stroke: #f54848;
+        fill: #c5d45a;
+        stroke-width: 1;
+        fill-opacity: 0.5;
+        stroke-opacity: 1;
+    }
+
+    #draw #marquee {
+        fill: #e8d36f;
+        stroke: #ee1324;
+        stroke-width: 1;
+        stroke-dasharray: 5, 5;
+        stroke-opacity: 0.9;
+        fill-opacity: 0.2;
+    }
+
+    #draw #marquee.hide {
+        display: none;
+    }
+
+    .popup {
+        display: none;
+        position: absolute;
+        color: white;
+        padding: 40px;
+        border: solid 1px #ddd;
+        background: green;
+        text-align: center;
+        width: 10%;
+    }
+
+    #screenshot {
+        width: 791px;
+        height: 1024px;
+        /*border: 10px solid #41729F;*/
+        background-position: center;
+        background-size: contain;
+        background-color: #41729F;
+    }
+
+    .CodeMirror {
+        width: 760px;
+        height: 900px;
+        border-radius: 6px;
+        background-position: center;
+        background-size: contain;
+        background-color: #eaeef3;
+    }
+
+    #resultJson {
+        width: 760px;
+        height: 900px;
+        background-position: center;
+        background-size: contain;
+        background-color: #41729F;
+    }
+
+</style>
+
+<body>
+
+<nav class="navbar navbar-light rounded-bottom" style="background-color: #274472; height: 50px">
+    <div class="container-fluid">
+        <h4>
+            <small class="text-muted" style="color: wheat !important;">Image analysis by segmentation</small>
+        </h4>
+    </div>
+</nav>
+<br>
+
+<div class="popup" style="">
+    Popup text...
+</div>
+
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-5">
+            <h3 style="text-align: center">
+                <small class="text-muted">Image (file)</small>
+            </h3>
+            <div>
+                <div id="display-image"></div>
+                <div width="791" height="1024" id="screenshot" draggable="false" class="rounded"></div>
+                <svg width="791" height="1024" viewBox="0 0 791 1024" id="draw">
+                    <rect id="marquee" x="450" y="420" width="150" height="150"/>
+                    <g id="boxes"></g>
+                </svg>
+            </div>
+
+        </div>
+
+        <div class="col-2 text-center">
+            <br>
+            <br>
+            <br>
+            <div class="d-grid gap-1 " style="width: 212px; margin-left: 30px;">
+                <input type="file" id="image-input" class="btn btn-secondary" accept="image/jpeg, image/png, image/jpg">
+                <br>
+                <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown"
+                        aria-expanded="false"
+                        style="width: inherit">Charge template
+                </button>
+                <ul class="dropdown-menu" id="tempMenu">
+                </ul>
+                <button type="button" class="btn btn-primary" onclick="saveTemplate()" style="width: inherit">Save
+                    template
+                </button>
+                <button type="button" class="btn btn-warning" onclick="deleteLast()" style="width: inherit">Remove
+                    last
+                </button>
+                <button type="button" class="btn btn-danger" onclick="removeAll()" style="width: inherit">Clear</button>
+                <br>
+                <button type="button" class="btn btn-info" onclick="process()" id="process" style="width: inherit">
+                    Process
+                </button>
+            </div>
+
+            <br>
+            <div class="list-group" style=" width: 205px;  margin-left: 20px;">
+                <ul id="elBox">
+                    <a href="#" id="base" class="list-group-item list-group-item-action active" aria-current="true">
+                        Tmp: </a>
+                </ul>
+            </div>
+        </div>
+        <div class="col-5">
+            <h3 style="text-align: center">
+                <small class="text-muted">Text (json)</small>
+            </h3>
+            <div id="resultJson" draggable="false" class="rounded">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js"
+        integrity="sha512-8RnEqURPUc5aqFEN04aQEiPlSAdE0jlFS/9iGgUyNtwFnSKCXhmB6ZTNl7LnDtDWKabJIASzXrzD0K+LYexU9g=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/javascript/javascript.min.js"
+        integrity="sha512-I6CdJdruzGtvDyvdO4YsiAq+pkWf2efgd1ZUSK2FnM/u2VuRASPC7GowWQrWyjxCZn6CT89s3ddGI+be0Ak9Fg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/lint/json-lint.min.js"
+        integrity="sha512-40xVcCik6TlUiZadnRc6ZM0BN65s7F+C3K7eBqGRf8dmjKApjzoiT/GB1GJmdICOZbXjJCiTBbVlsIvFs8A/+Q=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.js" integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk="
+        crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../assets/SelectZone-JS.js"></script>
+<script>
+    let templates = new Map();
+    let srcImgWidth;
+    let srcImgHeight;
+
+    function hasElements() {
+        return rectangles.length;
+    }
+
+    function deleteLast() {
+        if (hasElements()) {
+            console.log(rectangles[rectangles.length - 1]);
+            removeLast();
+        } else {
+            alert('nothing selected');
+        }
+    }
+
+    function removeAll() {
+        rectangles = [];
+        redraw();
+        const li = [...document.querySelectorAll("a")];
+        li.forEach(elem => {
+            if (elem.id != 'base') elem.parentNode.removeChild(elem);
+        });
+        document.getElementById('base').text = "Tmp:";
+    }
+
+    function saveTemplate() {
+        if (!hasElements()) {
+            alert('nothing selected');
+            return;
+        }
+        let templateName = prompt("Template name", '');
+        if (!templateName){
+            return;
+        }
+        let rectCopy = [...rectangles];
+        templates.set(templateName, rectCopy);
+        let list = document.getElementById('tempMenu');
+        let element = document.createElement('li');
+        element.id = templateName + '-temp';
+        element.className = 'dropdown-item';
+        element.onclick = function () {
+            chargeTemplate(templateName);
+        }
+        element.appendChild(document.createTextNode(templateName));
+        list.appendChild(element);
+        document.getElementById('base').text = "Tmp: " + templateName;
+    }
+
+    function process() {
+        let formData = new FormData();
+        console.log(rectangles);
+        let someData = new Blob([JSON.stringify({"zones": adjustCoordinates(rectangles)})], {type: "application/json"});
+        formData.append('file', $('#image-input').get(0).files[0]);
+        formData.append('data', someData);//json object which I am trying to send
+        $.ajax({
+            url: 'http://localhost:8081/ocr/vp',
+            cache: false,
+            contentType: false,
+            processData: false,
+            data: formData,
+            type: 'post',
+            success: function (data) {
+                editor.getDoc().setValue(JSON.stringify(JSON.parse(data.dataJson), null, 2));
+            }
+        });
+    }
+
+
+    function adjustCoordinates(elements) {
+        let rectCopy = [...elements];
+        rectCopy.forEach((rect, key) => {
+            rect.x = Math.round((rect.x / 791) * srcImgWidth);
+            rect.y = Math.round((rect.y / 1024) * srcImgHeight);
+            rect.width = Math.round((rect.width / 791) * srcImgWidth);
+            rect.height = Math.round((rect.height / 1024) * srcImgHeight);
+        });
+        return rectCopy;
+    }
+
+    function chargeTemplate(id) {
+        removeAll();
+        rectangles = templates.get(id);
+        rectangles.forEach((rect, key) => {
+            createText(rect.label);
+        });
+        redraw();
+    }
+
+
+    const image_input = document.querySelector("#image-input");
+
+    image_input.addEventListener("change", function () {
+        const reader = new FileReader();
+        reader.addEventListener("load", () => {
+            const uploaded_image = reader.result;
+            document.querySelector("#screenshot").style.backgroundImage = `url(${uploaded_image})`;
+        });
+        reader.readAsDataURL(this.files[0]);
+    });
+
+
+    var _URL = window.URL || window.webkitURL;
+
+    $("#image-input").change(function (e) {
+        var file, img;
+        if ((file = this.files[0])) {
+            img = new Image();
+            img.onload = function () {
+                srcImgWidth = this.width;
+                srcImgHeight = this.height;
+                console.log(this.width + " " + this.height);
+            };
+            img.src = _URL.createObjectURL(file);
+        }
+    });
+
+    let jsonDiv = document.getElementById('resultJson');
+    let editor = CodeMirror(jsonDiv, {
+        matchBrackets: true,
+        lineNumbers: true,
+        mode: "javascript",
+        json: true,
+        readOnly: true,
+    });
+</script>
+</body>
+
+
+</html>
