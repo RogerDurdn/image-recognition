@@ -12,6 +12,7 @@
 *.out
 
 # Dependency directories (remove the comment below to include it)
+.DS_Store
 # vendor/
 # tools
 .idea
